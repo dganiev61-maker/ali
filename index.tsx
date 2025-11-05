@@ -12,6 +12,12 @@ interface FreedBird {
     emoji: string;
 }
 
+interface LeaderboardEntry {
+    name: string;
+    score: number;
+    level: number;
+}
+
 const App = () => {
     const [problem, setProblem] = useState({ a: 0, b: 0, operator: '+' });
     const [userAnswer, setUserAnswer] = useState('');
@@ -19,14 +25,18 @@ const App = () => {
     const [message, setMessage] = useState('');
     const [freedBirds, setFreedBirds] = useState<FreedBird[]>([]);
     const [birdsInCage, setBirdsInCage] = useState<string[]>([]);
-    const [gameState, setGameState] = useState('playing'); // 'playing' | 'gameOver'
+    const [gameState, setGameState] = useState('startScreen'); // 'startScreen' | 'playing' | 'gameOver'
     const [level, setLevel] = useState(1);
     const [correctAnswersInLevel, setCorrectAnswersInLevel] = useState(0);
     const [timeLeft, setTimeLeft] = useState(LEVEL_DURATION);
+    const [playerName, setPlayerName] = useState('');
+    const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
     
     const bgMusicRef = useRef<HTMLAudioElement | null>(null);
     const birdSoundRef = useRef<HTMLAudioElement | null>(null);
     const ambientBirdsRef = useRef<HTMLAudioElement | null>(null);
+    const wrongAnswerSoundRef = useRef<HTMLAudioElement | null>(null);
+    const levelUpSoundRef = useRef<HTMLAudioElement | null>(null);
     const musicStarted = useRef(false);
     const answerInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -82,9 +92,16 @@ const App = () => {
         bgMusicRef.current = document.getElementById('bg-music') as HTMLAudioElement;
         birdSoundRef.current = document.getElementById('bird-sound') as HTMLAudioElement;
         ambientBirdsRef.current = document.getElementById('ambient-birds') as HTMLAudioElement;
+        wrongAnswerSoundRef.current = document.getElementById('wrong-answer-sound') as HTMLAudioElement;
+        levelUpSoundRef.current = document.getElementById('level-up-sound') as HTMLAudioElement;
+
+        const storedLeaderboard = localStorage.getItem('birdGameLeaderboard');
+        if (storedLeaderboard) {
+            setLeaderboard(JSON.parse(storedLeaderboard));
+        }
 
         if(bgMusicRef.current) bgMusicRef.current.volume = 0.3;
-        if(ambientBirdsRef.current) ambientBirdsRef.current.volume = 0.2;
+        if(ambientBirdsRef.current) ambientBirdsRef.current.volume = 0.4;
         
         document.body.className = 'level-bg-1';
     }, []);
@@ -99,6 +116,15 @@ const App = () => {
         document.body.classList.add(`level-bg-${backgroundLevel}`);
     }, [level]);
     
+    const saveScore = (name: string, finalScore: number, finalLevel: number) => {
+        const newScore = { name, score: finalScore, level: finalLevel };
+        const updatedLeaderboard = [...leaderboard, newScore]
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 10); // Keep top 10
+        setLeaderboard(updatedLeaderboard);
+        localStorage.setItem('birdGameLeaderboard', JSON.stringify(updatedLeaderboard));
+    };
+
     useEffect(() => {
         if (gameState !== 'playing') {
             return;
@@ -112,6 +138,7 @@ const App = () => {
                     clearInterval(timerId);
                     setMessage('Время вышло! Игра окончена.');
                     setGameState('gameOver');
+                    saveScore(playerName, score, level);
                     return 0;
                 }
                 return prevTime - 1;
@@ -119,7 +146,7 @@ const App = () => {
         }, 1000);
 
         return () => clearInterval(timerId);
-    }, [level, gameState]);
+    }, [level, gameState, playerName, score]);
 
 
     const startMusic = () => {
@@ -140,7 +167,6 @@ const App = () => {
     
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        startMusic();
         
         if (gameState !== 'playing') return;
 
@@ -171,6 +197,9 @@ const App = () => {
             if (newCorrectAnswers === BIRDS_PER_LEVEL) {
                 const nextLevel = level + 1;
                 setMessage(`Уровень ${level} пройден!`);
+                if (levelUpSoundRef.current) {
+                    levelUpSoundRef.current.play();
+                }
                 setTimeout(() => {
                     setLevel(nextLevel);
                     setCorrectAnswersInLevel(0);
@@ -183,11 +212,24 @@ const App = () => {
                 generateProblem();
             }
         } else {
+            if (wrongAnswerSoundRef.current) {
+                wrongAnswerSoundRef.current.play();
+            }
             setMessage('Ошибка! Игра окончена.');
             setGameState('gameOver');
+            saveScore(playerName, score, level);
         }
         setUserAnswer('');
         answerInputRef.current?.focus();
+    };
+
+    const handleStartGame = (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        if (playerName.trim()) {
+            setGameState('playing');
+            startMusic();
+            setTimeout(() => answerInputRef.current?.focus(), 0);
+        }
     };
 
     const restartGame = () => {
@@ -200,8 +242,7 @@ const App = () => {
         generateProblem(1);
         setMessage('');
         document.body.className = 'level-bg-1';
-        musicStarted.current = false;
-        startMusic();
+        setTimeout(() => answerInputRef.current?.focus(), 0);
     };
 
     const cageLevel = (level - 1) % 4 + 1;
@@ -214,57 +255,97 @@ const App = () => {
                 </div>
             ))}
 
-            {gameState === 'gameOver' && (
-                <div className="game-over-container">
-                    <h1>Игра окончена</h1>
-                    <p>{message}</p>
-                    <p>Ваш итоговый счет: {score}</p>
-                    <p>Вы достигли уровня: {level}</p>
-                    <button className="restart-button" onClick={restartGame}>
-                        Начать заново
-                    </button>
-                </div>
-            )}
-
-            {gameState === 'playing' && (
-                <div className="game-wrapper">
-                    <div className={`cage-container cage-level-${cageLevel}`}>
-                        <div className="birds-inside">
-                            {birdsInCage.map((bird, index) => (
-                                <span key={index} className="bird-in-cage">{bird}</span>
-                            ))}
-                        </div>
-                        <div className="cage-bars"></div>
-                    </div>
-
-                    <div className="game-container">
-                        <div className="game-stats">
-                            <span>Счет: {score}</span>
-                            <span className="timer">Время: {timeLeft}</span>
-                            <span>Уровень: {level}</span>
-                        </div>
+            <div className="main-layout">
+                 {gameState === 'startScreen' && (
+                    <div className="start-screen-container">
                         <h1>Спаси птиц</h1>
-                         <div className={`message ${message.includes('пройден') ? 'correct' : 'incorrect'}`}>
-                            {message}
-                        </div>
-                        <div className="problem">
-                            {problem.a} {problem.operator} {problem.b} = ?
-                        </div>
-                        <form onSubmit={handleSubmit} onClick={startMusic}>
+                        <p>Введите ваше имя, чтобы начать</p>
+                        <form onSubmit={handleStartGame}>
                             <input
-                                ref={answerInputRef}
-                                type="number"
-                                value={userAnswer}
-                                onChange={(e) => setUserAnswer(e.target.value)}
-                                className="answer-input"
+                                type="text"
+                                value={playerName}
+                                onChange={(e) => setPlayerName(e.target.value)}
+                                className="name-input"
+                                placeholder="Имя игрока"
                                 autoFocus
                                 required
+                                maxLength={15}
                             />
-                            <button type="submit" className="submit-button">Ответ</button>
+                            <button type="submit" className="start-button">Начать игру</button>
                         </form>
                     </div>
-                </div>
-            )}
+                )}
+                
+                {(gameState === 'playing' || gameState === 'gameOver') && (
+                    <>
+                        <div className="game-area">
+                            {gameState === 'gameOver' && (
+                                <div className="game-over-container">
+                                    <h1>Игра окончена</h1>
+                                    <p>{message}</p>
+                                    <p>Игрок: {playerName}</p>
+                                    <p>Ваш итоговый счет: {score}</p>
+                                    <p>Вы достигли уровня: {level}</p>
+                                    <button className="restart-button" onClick={restartGame}>
+                                        Начать заново
+                                    </button>
+                                </div>
+                            )}
+
+                            {gameState === 'playing' && (
+                                <div className="game-wrapper">
+                                    <div className={`cage-container cage-level-${cageLevel}`}>
+                                        <div className="birds-inside">
+                                            {birdsInCage.map((bird, index) => (
+                                                <span key={index} className="bird-in-cage">{bird}</span>
+                                            ))}
+                                        </div>
+                                        <div className="cage-bars"></div>
+                                    </div>
+
+                                    <div className="game-container">
+                                        <div className="game-stats">
+                                            <span>Счет: {score}</span>
+                                            <span className="timer">Время: {timeLeft}</span>
+                                            <span>Уровень: {level}</span>
+                                        </div>
+                                        <h1>Спаси птиц</h1>
+                                        <div className={`message ${message.includes('пройден') ? 'correct' : ''}`}>
+                                            {message}
+                                        </div>
+                                        <div className="problem">
+                                            {problem.a} {problem.operator} {problem.b} = ?
+                                        </div>
+                                        <form onSubmit={handleSubmit}>
+                                            <input
+                                                ref={answerInputRef}
+                                                type="number"
+                                                value={userAnswer}
+                                                onChange={(e) => setUserAnswer(e.target.value)}
+                                                className="answer-input"
+                                                autoFocus
+                                                required
+                                            />
+                                            <button type="submit" className="submit-button">Ответ</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                        <div className="leaderboard-container">
+                            <h2>🏆 Рейтинг 🏆</h2>
+                            <ol>
+                                {leaderboard.length > 0 ? leaderboard.map((entry, index) => (
+                                    <li key={index} className={entry.name === playerName && score === entry.score ? 'current-player' : ''}>
+                                        <span>{entry.name}</span>
+                                        <span>{entry.score} (Ур: {entry.level})</span>
+                                    </li>
+                                )) : <p>Пока нет рекордов!</p>}
+                            </ol>
+                        </div>
+                    </>
+                )}
+            </div>
         </>
     );
 };

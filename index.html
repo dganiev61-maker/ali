@@ -59,6 +59,22 @@
             justify-content: center;
             align-items: center;
         }
+
+        .main-layout {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            gap: 30px;
+            width: 100%;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .game-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
         
         .game-wrapper {
             display: flex;
@@ -248,8 +264,8 @@
             animation-delay: -1s;
         }
         
-        /* GAME OVER STYLES */
-        .game-over-container {
+        /* START & GAME OVER STYLES */
+        .start-screen-container, .game-over-container {
             background-color: rgba(255, 255, 255, 0.9);
             padding: 40px;
             border-radius: 20px;
@@ -258,13 +274,29 @@
             width: 90vw;
             max-width: 500px;
             animation: fade-in 0.5s ease-in-out;
+            margin-top: 20px;
         }
         
-        .game-over-container h1 {
-            color: var(--error-red);
-        }
+        .game-over-container h1 { color: var(--error-red); }
+        .start-screen-container h1 { color: var(--primary-blue); }
         
-        .restart-button {
+        .name-input {
+            width: 70%;
+            height: 50px;
+            font-size: 1.5em;
+            text-align: center;
+            border: 2px solid #ADD8E6;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-family: 'Comfortaa', cursive;
+        }
+
+        .name-input:focus {
+            outline: none;
+            border-color: var(--primary-blue);
+        }
+
+        .start-button, .restart-button {
             background-color: var(--primary-blue);
             color: white;
             border: none;
@@ -274,12 +306,65 @@
             cursor: pointer;
             transition: background-color 0.3s ease, transform 0.2s ease;
             font-family: 'Comfortaa', cursive;
-            margin-top: 20px;
+            margin-top: 10px;
         }
 
-        .restart-button:hover {
+        .start-button:hover, .restart-button:hover {
             background-color: #003e70;
             transform: scale(1.05);
+        }
+
+        /* LEADERBOARD STYLES */
+        .leaderboard-container {
+            background-color: rgba(255, 255, 255, 0.85);
+            padding: 20px 30px;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            width: 320px;
+            max-height: 80vh;
+            overflow-y: auto;
+            animation: fade-in 0.5s ease-in-out;
+        }
+        .leaderboard-container h2 {
+            color: var(--primary-blue);
+            text-align: center;
+            margin-top: 0;
+        }
+        .leaderboard-container ol {
+            list-style-type: decimal;
+            padding-left: 20px;
+            margin: 0;
+        }
+        .leaderboard-container li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 5px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        .leaderboard-container li span:first-child {
+            font-weight: bold;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 120px;
+        }
+         .leaderboard-container li span:last-child {
+            font-size: 0.9em;
+            color: var(--text-dark);
+            white-space: nowrap;
+        }
+        .leaderboard-container li:last-child {
+            border-bottom: none;
+        }
+        .leaderboard-container .current-player {
+            color: var(--success-green);
+            background-color: rgba(34, 139, 34, 0.1);
+            border-radius: 5px;
+            margin: 2px -5px;
         }
 
         @keyframes fade-in {
@@ -325,8 +410,10 @@
 <body>
     <div id="root"></div>
     <audio id="bg-music" loop src="https://assets.mixkit.co/music/preview/mixkit-a-happy-day-420.mp3"></audio>
-    <audio id="bird-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-small-bird-in-a-cage-30.mp3"></audio>
+    <audio id="bird-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-bird-whistle-721.mp3"></audio>
     <audio id="ambient-birds" loop src="https://assets.mixkit.co/sfx/preview/mixkit-birds-in-the-jungle-2414.mp3"></audio>
+    <audio id="wrong-answer-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3"></audio>
+    <audio id="level-up-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-magical-win-flute-2223.mp3"></audio>
     <script type="module" src="/index.tsx"></script>
 </body>
 </html>
