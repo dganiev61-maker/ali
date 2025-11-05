@@ -1,0 +1,11 @@
+{
+  "background_color": "#ffffff",
+  "dir": "ltr",
+  "display": "standalone",
+  "name": "ali-psi-seven.vercel",
+  "orientation": "any",
+  "scope": "/",
+  "short_name": "ali-psi-seven.vercel",
+  "start_url": "/",
+  "theme_color": "#ffffff"
+}
